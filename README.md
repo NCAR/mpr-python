@@ -32,9 +32,9 @@ import mpr
 
 or
 
-if you would like not to install mpr module,
+if you would like not to install mpr module, insert in the beginning of the notebooks or python scripts
 ```python
-insert sys.path.append(<PATH TO mpr-python>)
+sys.path.append(<PATH TO mpr-python>)
 ```
 e.g., calling from ./notebook/xx.ipyb, insert
 ```python
