@@ -2,6 +2,7 @@
 import os
 import warnings
 
+import numpy as np
 import xarray as xr
 
 # TODO:
@@ -17,6 +18,18 @@ GEO_ATTR_TYPE = {'climate':    {'precipitation':'prec', 'tempeature':'tavg', 'wi
                  }
 
 mapping_file = 'spatialweights_grid_600m_to_HUC12.nc'
+
+# maping variable meta
+#                     name in netcdf.        name            dimension       data-type
+MAPPING_VARS_META = {'polyid':      {'name':'hruId',        'dim':'polyid', 'type':'int64'},
+                     'overlaps':    {'name':'overlaps',     'dim':'polyid', 'type':'int32'},
+                     'intersector': {'name':'intersector',  'dim':'data',   'type':'int64'},
+                     'i_index':     {'name':'i_index',      'dim':'data',   'type':'int32'},
+                     'j_index':     {'name':'j_index',      'dim':'data',   'type':'int32'},
+                     'weight':      {'name':'weight',       'dim':'data',   'type':'float32'},
+                     'IDmask':      {'name':'IDmask',       'dim':'data',   'type':'int64'},
+                     'regridweight':{'name':'regridweight', 'dim':'data',   'type':'float32'},
+                     }
 
 
 class NoneError(Exception):
@@ -50,18 +63,85 @@ def load_geophysical_attributes(root=GEO_ATTR_ROOT_DIR, geotype=GEO_ATTR_TYPE,  
 
 def load_mapping_data(root=GEO_ATTR_ROOT_DIR, file=mapping_file, var_list=None, **kwargs):
     print('loading mapping weight data...', flush=True)
-    
+
     with xr.open_dataset(os.path.join(root, file), **kwargs) as ds:
-       
+
         drop_var = []
         if var_list is not None:
-            
+
             for var in var_list:
                 if not var in ds.variables:
                     warnings.warn('variable: "%s" not exist' % var)
                     
             drop_var = [var for var in ds.variables if not var in var_list]
-            
-        ds = ds.drop_vars(drop_var)
-    
-    return ds
+
+        mat_data = process_mapping_data(ds.drop_vars(drop_var), var_list=var_list)
+
+    return mat_data
+
+
+def process_mapping_data(mapping_data, var_list=None):
+    print("Pre-process mapping data arrays")
+
+    # input:  xarray dataset,  mapping_data
+    #         list,            mapping variable list to be processed
+    # return: dictionary,      {variable name: numpy array}
+
+    # data dimension variable reformat
+    #   mat_weight      [nHRU x maxOverlaps]
+    #   mat_i_index     [nHRU x maxOverlaps]
+    #   mat_j_index     [nHRU x maxOverlaps]
+    #   mat_intersector [nHRU x maxOverlaps]
+
+    # enforce to include ['polyid', 'overlaps', 'weight']
+    if not all(v in var_list for v in ['polyid', 'overlaps', 'weight']):
+        raise Exception('Sorry, you need to include "polyid" AND "overlaps" AND "weight" in var_list')
+
+    # remove variables in var_list NOT exist in MAPPING_VARS_META
+    var_list = [var for var in var_list if var in MAPPING_VARS_META.keys()]
+
+    var_dic = {}
+    for var in var_list:
+        var_dic[var] = mapping_data[var].values
+        if var in ['i_index', 'j_index']:
+             # j_index is 1-based and starts at south ... make 0-based
+             # i_index is 1-based and starts at West ... make 0-based
+            var_dic[var] = var_dic[var] - 1
+
+    # check number of target HRUs, maximum number of overlapping source polygons
+    nHRU = len(var_dic['polyid'])
+    maxOverlaps = var_dic['overlaps'].max()
+
+    # Check sum of overlapping polygon number is equal to data dimension
+    flag = True
+    if var_dic['overlaps'].sum() == len(var_dic['weight']):
+        flag = False
+
+    # convert 1D data dimension array to a matrix (nHRU x maxOverlaps)
+    mat_dic = {}
+    for var in var_list:
+        if MAPPING_VARS_META[var]['dim'] == 'data':
+            mat_dic[var] = np.zeros((nHRU, maxOverlaps), dtype=MAPPING_VARS_META[var]['type'])
+
+    ix2=0;
+    for p in range(0, nHRU):
+        if var_dic['overlaps'][p]>0:
+            ix1 = ix2
+            ix2 = ix1+var_dic['overlaps'][p]
+        elif var_dic['overlaps'][p]==0:
+            if flag: # NOTE: grid2poly.py put overlaps=0 output skip data in data dimension, but poly2poly put overlaps=1 and missing values in data dimension
+                ix1 = ix2
+                ix2 = ix2+1
+            matWgts[p, 0] = 1.0
+            continue
+
+        for var in var_list:
+            if MAPPING_VARS_META[var]['dim'] == 'data':
+                if var == 'weight': # will normalize in case sum of weight is not 1
+                    mat_dic[var][p, 0:var_dic['overlaps'][p]] = var_dic[var][ix1:ix2]/var_dic[var][ix1:ix2].sum()
+                else:
+                    mat_dic[var][p, 0:var_dic['overlaps'][p]] = var_dic[var][ix1:ix2]
+            else: # add polyid dimension
+                mat_dic[var] = var_dic[var]
+
+    return mat_dic
