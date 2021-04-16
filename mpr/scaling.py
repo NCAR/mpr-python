@@ -64,3 +64,46 @@ def horizontal_weighted_mean(mapping_data, origArrays, pvalue, default=FILL_VALU
         wgtedVals = np.nansum(matDataVals**pvalue * mapping_data['weight'], axis=nDims-1) **(1.0/pvalue)   # produces vector of weighted values
 
     return wgtedVals
+
+
+def vertical_weighted_mean(mapping_data, origArrays, pvalue, default=FILL_VALUE):
+    """Compute areal weighted generalized mean value of for vertical layer
+       """
+    # numpy broadcasting rule
+    # https://numpy.org/doc/stable/user/basics.broadcasting.html
+
+    # ogirinal grid: 3D [lat, lon, soil_lyr] -> target grid: 3D [lat, lon, model_lyr]
+
+    orgArrays_reshaped = np.moveaxis(origArrays, 0, -1)
+    array_shape        = orgArrays_reshaped.shape  # original array [soil_lyr, lat, lon] -> [lat, lon, soil_lyr]
+    nDims              = len(array_shape)
+
+    # TODO
+    # move these out of function
+    nMlyr       = len(mapping_data['overlaps'])
+    maxOverlaps = mapping_data['overlaps'].max()
+
+    if nDims == 3:
+        wgtedVals   = np.zeros((array_shape[0], array_shape[1], nMlyr), dtype='float32')
+        matDataVals = np.zeros((array_shape[0], array_shape[1], nMlyr, maxOverlaps), dtype='float32')
+    else:
+        pass # add error check - array with other dimension is not supported.
+
+    # reformat var data into regular matrix matching weights format (nOutPolygons, maxOverlaps)
+    #   used advanced indexing to extract matching input grid indices
+    for ixm in range(0, nMlyr):
+        if mapping_data['overlaps'][ixm]>0:
+            if nDims == 3:
+                matDataVals[:, :, ixm, 0:mapping_data['overlaps'][ixm]] = \
+                    orgArrays_reshaped[:, :, mapping_data['soil_index'][ixm,0:mapping_data['overlaps'][ixm]]]
+        else:
+            if nDims == 3:
+                matDataVals[:, :, ixm, 0] = default
+
+    weight = np.broadcast_to(mapping_data['weight'], (array_shape[0], array_shape[1], *mapping_data['weight'].shape ))
+    if abs(pvalue) < 0.00001: # geometric mean
+        wgtedVals = exp(np.nansum(log(matDataVals)* weight, axis=nDims))
+    else:
+        wgtedVals = np.nansum(matDataVals**pvalue * weight, axis=nDims) **(1.0/pvalue)   # produces vector of weighted values
+
+    return np.moveaxis(wgtedVals, -1, 0)
