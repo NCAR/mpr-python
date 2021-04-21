@@ -1,7 +1,8 @@
 
-import os
+import sys, os
 import warnings
 
+from datetime import datetime
 import numpy as np
 import xarray as xr
 
@@ -11,9 +12,9 @@ GEO_ATTR_ROOT_DIR = '/glade/p/ral/hap/mizukami/pnw-extrems/geospatial_data/geoph
 
 #  var_type: {var_name: var_name_in_file}
 #  file name is f{var_type}_data.nc
-GEO_ATTR_TYPE = {'climate':    {'precipitation':'prec', 'tempeature':'tavg', 'wind':'wind', 'humidity':'rh', 'aridity':'ai'}, 
+GEO_ATTR_TYPE = {'climate':    {'precipitation':'prec', 'tempeature':'tavg', 'wind':'wind', 'humidity':'rh', 'aridity':'ai'},
                  'soil':       {'sand':'sand_pct', 'clay':'clay_pct', 'silt':'silt_pct', 'bulk_density':'bulk_density', 'organic_carbon':'soc'},
-                 'vegetation': {'IGPG':'vegclass', 'canopy_height':'ch', 'lai':'lai'}, 
+                 'vegetation': {'IGPG':'vegclass', 'canopy_height':'ch', 'lai':'lai'},
                  'topography': {'ele':'ele_mean', 'roughness':'ele_std_dev', 'slope':'slope_mean'}
                  }
 
@@ -31,6 +32,11 @@ MAPPING_VARS_META = {'polyid':      {'name':'hruId',        'dim':'polyid', 'typ
                      'regridweight':{'name':'regridweight', 'dim':'data',   'type':'float32'},
                      }
 
+# output
+PARM_OUT_ROOT_DIR = '/glade/p/ral/hap/mizukami/pnw-extrems/geospatial_data/geophysical/data_mpr'
+PARAM_FILE_NAME   = 'param.nc'
+
+FILL_VALUE = -9999.0
 
 class NoneError(Exception):
     pass
@@ -72,7 +78,7 @@ def load_mapping_data(root=GEO_ATTR_ROOT_DIR, file=mapping_file, var_list=None, 
             for var in var_list:
                 if not var in ds.variables:
                     warnings.warn('variable: "%s" not exist' % var)
-                    
+
             drop_var = [var for var in ds.variables if not var in var_list]
 
         mat_data = process_mapping_data(ds.drop_vars(drop_var), var_list=var_list)
@@ -145,3 +151,29 @@ def process_mapping_data(mapping_data, var_list=None):
                 mat_dic[var] = var_dic[var]
 
     return mat_dic
+
+
+def write_param(param_data, param_meta, hru_data, hru_meta, root=PARM_OUT_ROOT_DIR, file=PARAM_FILE_NAME, par_list=None):
+
+    ds = xr.Dataset()
+    ds[hru_meta['name']]=((hru_meta['dim']), hru_data)
+
+    if par_list is None:
+        par_list = [*param_data]
+    else:  # Make sure that parameter in [par_list] exist in data, remove if not exist
+        for par in par_list:
+            if not par in param_data.keys():
+                warnings.warn(f'parameter: "{par}" not exist')
+                par_list.remove(par)
+
+    for name in par_list:
+        ds[name] = ((param_meta[name]['dim']), param_data[name])
+
+        ds[name].attrs['long_name'] = param_meta[name]['long_name']
+        ds[name].attrs['units'] = param_meta[name]['units']
+        ds[name].encoding['_FillValue'] = FILL_VALUE
+
+    history = '{}: {}\n'.format(datetime.now().strftime('%c'),' '.join(sys.argv))
+    ds.attrs={'Conventions':'xxxx', 'title':'Hydrologic model parameter', 'history':history}
+
+    ds.to_netcdf(os.path.join(root,file))
