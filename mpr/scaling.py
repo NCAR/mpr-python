@@ -57,11 +57,20 @@ def horizontal_weighted_mean(mapping_data, origArrays, pvalue, default=FILL_VALU
             elif nDims == 3:
                 matDataVals[:, iHru, 0] = default
 
+    # adjust weight matrix again (put zero where parameter is nan and re-scale weight)
+    if nDims == 2:
+        idx = np.where(np.isnan(matDataVals[:,:]))
+    elif nDims == 3:
+        idx = np.where(np.isnan(matDataVals[0,:,:]))
+    mapping_data['weight'][idx] = 0
+    sum_weight = np.tile(1.0/np.sum(mapping_data['weight'], axis=1), (mapping_data['weight'].shape[1],1)).T
+    weight = sum_weight * mapping_data['weight']
+
     # Compute mean at all the target hrus
     if abs(pvalue) < 0.00001: # geometric mean
-        wgtedVals = exp(np.nansum(log(matDataVals)* mapping_data['weight'], axis=nDims-1))
+        wgtedVals = exp(np.nansum(log(matDataVals)* weight, axis=nDims-1))
     else:
-        wgtedVals = np.nansum(matDataVals**pvalue * mapping_data['weight'], axis=nDims-1) **(1.0/pvalue)   # produces vector of weighted values
+        wgtedVals = np.nansum((matDataVals**pvalue) * weight, axis=nDims-1) **(1.0/pvalue)   # produces vector of weighted values
 
     return wgtedVals
 
@@ -85,7 +94,7 @@ def vertical_weighted_mean(mapping_data, origArrays, pvalue, default=FILL_VALUE)
 
     if nDims == 3:
         wgtedVals   = np.zeros((array_shape[0], array_shape[1], nMlyr), dtype='float32')
-        matDataVals = np.zeros((array_shape[0], array_shape[1], nMlyr, maxOverlaps), dtype='float32')
+        matDataVals = np.full((array_shape[0], array_shape[1], nMlyr, maxOverlaps), np.nan, dtype='float32')
     else:
         pass # add error check - array with other dimension is not supported.
 
@@ -102,8 +111,15 @@ def vertical_weighted_mean(mapping_data, origArrays, pvalue, default=FILL_VALUE)
 
     weight = np.broadcast_to(mapping_data['weight'], (array_shape[0], array_shape[1], *mapping_data['weight'].shape ))
     if abs(pvalue) < 0.00001: # geometric mean
-        wgtedVals = exp(np.nansum(log(matDataVals)* weight, axis=nDims))
+        wgtedVals = exp(_nansum(log(matDataVals)* weight, axis=nDims))
     else:
-        wgtedVals = np.nansum(matDataVals**pvalue * weight, axis=nDims) **(1.0/pvalue)   # produces vector of weighted values
+        wgtedVals = _nansum(matDataVals**pvalue * weight, axis=nDims) **(1.0/pvalue)   # produces vector of weighted values
 
     return np.moveaxis(wgtedVals, -1, 0)
+
+
+def _nansum(a, **kwargs):
+    mx = np.isnan(a).all(**kwargs)
+    res = np.nansum(a, **kwargs)
+    res[mx] = np.nan
+    return res
