@@ -1,7 +1,6 @@
 
 import sys, os
 import warnings
-import yaml
 
 from datetime import datetime
 import numpy as np
