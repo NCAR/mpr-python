@@ -1,0 +1,13 @@
+# transfer function types and parameters
+# convention <tf_name>_<coef_id>
+theta_sat: 
+ - 1.0
+summerLAI: 
+ - 1.0
+heightCanopyTop: 
+ - 0.75
+heightCanopyBottom: 
+ - 0.5
+frozenPrecipMultip: 
+ - 3
+ - 2

@@ -1,0 +1,186 @@
+# model
+
+hru_meta:
+    name: hruId
+    dim: hru
+    long_name: 'HRU ID'
+
+
+layer_thickness: # meter
+    soil:
+        - 0.05
+        - 0.1
+        - 0.15
+        - 0.3
+        - 0.4
+        - 1.0
+    model:
+        - 1.0
+
+# model parameter meta
+# list in order of the computation
+# Look transfer_function.py for tf name and tf parameters are defined in tf_meta.yml
+param:
+    k_macropore:
+        compute: False
+        tf: k_macropore
+        min: 1.0e-7
+        max: 1.0e-1
+        vertical_scale: True
+        horizontal_scale: True
+        dim:
+            - lyr
+            - hru
+        long_name: saturated hydraulic conductivity for macropores
+        units: 'm s-1'
+
+    k_soil:
+        compute: False
+        tf: k_soil
+        min: 1.0e-7
+        max: 1.0e-4
+        vertical_scale: True
+        horizontal_scale: True
+        dim:
+            - lyr
+            - hru
+        long_name: Saturated hydraulic conductivity
+        units: 'm s-1'
+
+    theta_sat:
+        compute: False
+        tf: theta_sat
+        min: 0.3000
+        max: 0.6000
+        vertical_scale: True
+        horizontal_scale: True
+        dim:
+            - lyr
+            - hru
+        long_name: soil porosity
+        units: '-'
+
+    aquiferBaseflowExp:
+        compute: False
+        tf: aquiferBaseflowExp
+        min: 1.00
+        max: 10.0
+        vertical_scale: True
+        horizontal_scale: True
+        dim:
+            - lyr
+            - hru
+        long_name: baseflow exponent
+        units: '-'
+
+    aquiferBaseflowRate:
+        compute: False
+        tf: aquiferBaseflowRate
+        min: 1.0e-9
+        max: 1.0e-1
+        vertical_scale: True
+        horizontal_scale: True
+        dim:
+            - lyr
+            - hru
+        long_name: baseflow rate when aquifer storage reaches aquiferScaleFactor
+        units: 'm s-1'
+
+    qSurfScale:
+        compute: False
+        tf: qSurfScale
+        min: 1.000
+        max: 100.0
+        vertical_scale: True
+        horizontal_scale: True
+        dim:
+            - lyr
+            - hru
+        long_name: scaling factor in the surface runoff parameterization
+        units: '-'
+
+    Fcapil:
+        compute: False
+        tf: Fcapil
+        min: 0.0100
+        max: 0.1000
+        vertical_scale: True
+        horizontal_scale: True
+        dim:
+            - lyr
+            - hru
+        long_name: capillary retention_as a fraction of the total pore volume
+        units: '-'
+
+    summerLAI:
+        compute: True
+        tf: summerLAI
+        min: 0.01
+        max: 10.0
+        vertical_scale: False
+        horizontal_scale: True
+        dim:
+            - hru
+        long_name: summer LAI
+        units: 'm2/m2'
+
+    heightCanopyTop:
+        compute: False
+        tf: heightCanopyTop
+        min: 0.05
+        max: 100.0
+        vertical_scale: False
+        horizontal_scale: True
+        dim:
+            - hru
+        long_name: height of canopy top from ground
+        units: 'm'
+
+    heightCanopyBottom:
+        compute: False
+        tf: heightCanopyBottom
+        min: 0.0
+        max: 5.0
+        vertical_scale: False
+        horizontal_scale: True
+        dim:
+            - hru
+        long_name: Canopy bottom height from ground
+        units: 'm'
+
+    frozenPrecipMultip:
+        compute: True
+        tf: frozenPrecipMultip
+        min: 0.5
+        max: 1.5
+        vertical_scale: False
+        horizontal_scale: True
+        dim:
+            - hru
+        long_name: frozen precipitation multiplier
+        units: '-'
+
+    routingGammaScale:
+        compute: False
+        tf: routingGammaScale
+        min: 360.0
+        max: 72000.0
+        vertical_scale: False
+        horizontal_scale: True
+        dim:
+            - gru
+        long_name: scale parameter in Gamma distribution used for sub-grid routing
+        units: 's'
+
+    routingGammaShape:
+        compute: False
+        tf: routingGammaShape
+        min: 1.0000
+        max: 5.0000
+        vertical_scale: False
+        horizontal_scale: True
+        dim:
+            - gru
+        long_name: shape parameter in Gamma distribution used for sub-grid routing
+        units: '-'
+
