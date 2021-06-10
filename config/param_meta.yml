@@ -23,7 +23,7 @@ layer_thickness: # meter
 param:
     k_macropore:
         compute: False
-        tf: k_macropore
+        tf: k_macropore_tf1
         min: 1.0e-7
         max: 1.0e-1
         vertical_scale: True
@@ -36,7 +36,7 @@ param:
 
     k_soil:
         compute: False
-        tf: k_soil
+        tf: k_soil_tf1
         min: 1.0e-7
         max: 1.0e-4
         vertical_scale: True
@@ -49,7 +49,7 @@ param:
 
     theta_sat:
         compute: False
-        tf: theta_sat
+        tf: theta_sat_tf1
         min: 0.3000
         max: 0.6000
         vertical_scale: True
@@ -62,7 +62,7 @@ param:
 
     aquiferBaseflowExp:
         compute: False
-        tf: aquiferBaseflowExp
+        tf: aquiferBaseflowExp_tf1
         min: 1.00
         max: 10.0
         vertical_scale: True
@@ -75,7 +75,7 @@ param:
 
     aquiferBaseflowRate:
         compute: False
-        tf: aquiferBaseflowRate
+        tf: aquiferBaseflowRate_tf1
         min: 1.0e-9
         max: 1.0e-1
         vertical_scale: True
@@ -88,7 +88,7 @@ param:
 
     qSurfScale:
         compute: False
-        tf: qSurfScale
+        tf: qSurfScale_tf1
         min: 1.000
         max: 100.0
         vertical_scale: True
@@ -101,7 +101,7 @@ param:
 
     Fcapil:
         compute: False
-        tf: Fcapil
+        tf: Fcapil_tf1
         min: 0.0100
         max: 0.1000
         vertical_scale: True
@@ -114,7 +114,7 @@ param:
 
     summerLAI:
         compute: True
-        tf: summerLAI
+        tf: summerLAI_tf1
         min: 0.01
         max: 10.0
         vertical_scale: False
@@ -126,7 +126,7 @@ param:
 
     heightCanopyTop:
         compute: False
-        tf: heightCanopyTop
+        tf: heightCanopyTop_tf1
         min: 0.05
         max: 100.0
         vertical_scale: False
@@ -138,7 +138,7 @@ param:
 
     heightCanopyBottom:
         compute: False
-        tf: heightCanopyBottom
+        tf: heightCanopyBottom_tf1
         min: 0.0
         max: 5.0
         vertical_scale: False
@@ -150,7 +150,7 @@ param:
 
     frozenPrecipMultip:
         compute: True
-        tf: frozenPrecipMultip
+        tf: frozenPrecipMultip_tf1
         min: 0.5
         max: 1.5
         vertical_scale: False
@@ -162,7 +162,7 @@ param:
 
     routingGammaScale:
         compute: False
-        tf: routingGammaScale
+        tf: routingGammaScale_tf1
         min: 360.0
         max: 72000.0
         vertical_scale: False
@@ -174,7 +174,7 @@ param:
 
     routingGammaShape:
         compute: False
-        tf: routingGammaShape
+        tf: routingGammaShape_tf1
         min: 1.0000
         max: 5.0000
         vertical_scale: False
