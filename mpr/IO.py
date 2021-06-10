@@ -6,37 +6,8 @@ from datetime import datetime
 import numpy as np
 import xarray as xr
 
-# TODO:
-
-GEO_ATTR_ROOT_DIR = '/glade/p/ral/hap/mizukami/pnw-extrems/geospatial_data/geophysical/data_mpr'
-
-#  var_type: {var_name: var_name_in_file}
-#  file name is f{var_type}_data.nc
-GEO_ATTR_TYPE = {'climate':    {'precipitation':'prec', 'tempeature':'tavg', 'wind':'wind', 'humidity':'rh', 'aridity':'ai'},
-                 'soil':       {'sand':'sand_pct', 'clay':'clay_pct', 'silt':'silt_pct', 'bulk_density':'bulk_density', 'organic_carbon':'soc'},
-                 'vegetation': {'IGPG':'vegclass', 'canopy_height':'ch', 'lai':'lai'},
-                 'topography': {'ele':'ele_mean', 'roughness':'ele_std_dev', 'slope':'slope_mean'}
-                 }
-
-mapping_file = 'spatialweights_grid_600m_to_HUC12.nc'
-
-# maping variable meta
-#                     name in netcdf.        name            dimension       data-type
-MAPPING_VARS_META = {'polyid':      {'name':'hruId',        'dim':'polyid', 'type':'int64'},
-                     'overlaps':    {'name':'overlaps',     'dim':'polyid', 'type':'int32'},
-                     'intersector': {'name':'intersector',  'dim':'data',   'type':'int64'},
-                     'i_index':     {'name':'i_index',      'dim':'data',   'type':'int32'},
-                     'j_index':     {'name':'j_index',      'dim':'data',   'type':'int32'},
-                     'weight':      {'name':'weight',       'dim':'data',   'type':'float32'},
-                     'IDmask':      {'name':'IDmask',       'dim':'data',   'type':'int64'},
-                     'regridweight':{'name':'regridweight', 'dim':'data',   'type':'float32'},
-                     }
-
-# output
-PARM_OUT_ROOT_DIR = '/glade/p/ral/hap/mizukami/pnw-extrems/geospatial_data/geophysical/data_mpr'
-PARAM_FILE_NAME   = 'param.nc'
-
 FILL_VALUE = -9999.0
+
 
 class NoneError(Exception):
     pass
@@ -50,13 +21,16 @@ def progress(r):
         return r
 
 
-def load_geophysical_attributes(root=GEO_ATTR_ROOT_DIR, geotype=GEO_ATTR_TYPE,  **kwargs):
-    print('loading geophysical attributes...', flush=True)
+def load_geophysical_attributes(io_cfg,  **kwargs):
+    print('\n Loading geophysical attributes...', flush=True)
+
+    root=io_cfg['INPUT']['DIRE']
+    geotype=io_cfg['GEO_ATTR_TYPE']
 
     if isinstance(geotype, dict):
-        geolist = GEO_ATTR_TYPE.keys()
+        geolist = geotype.keys()
     elif isinstance(geotype, list):
-        geolist = GEO_ATTR_TYPE
+        geolist = geotype
     else:
         raise NoneError("geotype must be provided in dictionary key or list")
 
@@ -67,8 +41,11 @@ def load_geophysical_attributes(root=GEO_ATTR_ROOT_DIR, geotype=GEO_ATTR_TYPE,  
     return attr_data
 
 
-def load_mapping_data(root=GEO_ATTR_ROOT_DIR, file=mapping_file, var_list=None, **kwargs):
-    print('loading mapping weight data...', flush=True)
+def load_mapping_data(io_cfg, var_list=None, **kwargs):
+    print('\n Loading mapping weight data...', flush=True)
+
+    root=io_cfg['INPUT']['DIRE']
+    file=io_cfg['INPUT']['MAP_FILE']
 
     with xr.open_dataset(os.path.join(root, file), **kwargs) as ds:
 
@@ -81,13 +58,13 @@ def load_mapping_data(root=GEO_ATTR_ROOT_DIR, file=mapping_file, var_list=None, 
 
             drop_var = [var for var in ds.variables if not var in var_list]
 
-        mat_data = process_mapping_data(ds.drop_vars(drop_var), var_list=var_list)
+        mat_data = process_mapping_data(ds.drop_vars(drop_var), io_cfg, var_list=var_list)
 
     return mat_data
 
 
-def process_mapping_data(mapping_data, var_list=None):
-    print("Pre-process mapping data arrays")
+def process_mapping_data(mapping_data, io_cfg, var_list=None):
+    print("\n Pre-process mapping data arrays")
 
     # input:  xarray dataset,  mapping_data
     #         list,            mapping variable list to be processed
@@ -104,7 +81,7 @@ def process_mapping_data(mapping_data, var_list=None):
         raise Exception('Sorry, you need to include "polyid" AND "overlaps" AND "weight" in var_list')
 
     # remove variables in var_list NOT exist in MAPPING_VARS_META
-    var_list = [var for var in var_list if var in MAPPING_VARS_META.keys()]
+    var_list = [var for var in var_list if var in io_cfg['MAPPING_VARS_META'].keys()]
 
     var_dic = {}
     for var in var_list:
@@ -126,8 +103,8 @@ def process_mapping_data(mapping_data, var_list=None):
     # convert 1D data dimension array to a matrix (nHRU x maxOverlaps)
     mat_dic = {}
     for var in var_list:
-        if MAPPING_VARS_META[var]['dim'] == 'data':
-            mat_dic[var] = np.zeros((nHRU, maxOverlaps), dtype=MAPPING_VARS_META[var]['type'])
+        if io_cfg['MAPPING_VARS_META'][var]['dim'] == 'data':
+            mat_dic[var] = np.zeros((nHRU, maxOverlaps), dtype=io_cfg['MAPPING_VARS_META'][var]['type'])
 
     ix2=0;
     for p in range(0, nHRU):
@@ -142,7 +119,7 @@ def process_mapping_data(mapping_data, var_list=None):
             continue
 
         for var in var_list:
-            if MAPPING_VARS_META[var]['dim'] == 'data':
+            if io_cfg['MAPPING_VARS_META'][var]['dim'] == 'data':
                 if var == 'weight': # will normalize in case sum of weight is not 1
                     mat_dic[var][p, 0:var_dic['overlaps'][p]] = var_dic[var][ix1:ix2]/var_dic[var][ix1:ix2].sum()
                 else:
@@ -153,13 +130,22 @@ def process_mapping_data(mapping_data, var_list=None):
     return mat_dic
 
 
-def write_param(param_data, param_meta, hru_data, hru_meta, root=PARM_OUT_ROOT_DIR, file=PARAM_FILE_NAME, par_list=None):
+def write_param(param_data, param_meta, hru_data, hru_meta, io_cfg, par_list=None, output=None):
+    print("\n Write parameters", flush=True)
+
+    if output is None:
+        output = os.path.join(io_cfg['OUTPUT']['DIRE'], io_cfg['OUTPUT']['PARAM_FILE_NAME'])
 
     ds = xr.Dataset()
     ds[hru_meta['name']]=((hru_meta['dim']), hru_data)
 
     if par_list is None:
-        par_list = [*param_data]
+        par_list = []
+        for par, meta in param_meta.items():
+            if meta['compute']:
+                par_list.append(par)
+        #par_list = [*param_data]
+
     else:  # Make sure that parameter in [par_list] exist in data, remove if not exist
         for par in par_list:
             if not par in param_data.keys():
@@ -176,4 +162,4 @@ def write_param(param_data, param_meta, hru_data, hru_meta, root=PARM_OUT_ROOT_D
     history = '{}: {}\n'.format(datetime.now().strftime('%c'),' '.join(sys.argv))
     ds.attrs={'Conventions':'xxxx', 'title':'Hydrologic model parameter', 'history':history}
 
-    ds.to_netcdf(os.path.join(root,file))
+    ds.to_netcdf(output)
