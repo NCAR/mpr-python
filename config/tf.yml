@@ -1,0 +1,20 @@
+# transfer function types and parameters
+#
+# -- convention
+# <transfer_function_name>:
+# - coef1
+# - coef2
+#
+# <transfer_function_name> should match with ['param']['<param_name'>]['tf'] in param_meta.yml
+
+theta_sat:
+ - 1.0
+summerLAI:
+ - 1.0
+heightCanopyTop:
+ - 0.75
+heightCanopyBottom:
+ - 0.5
+frozenPrecipMultip:
+ - 3
+ - 2
