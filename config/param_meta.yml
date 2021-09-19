@@ -1,3 +1,4 @@
+---
 # model
 
 hru_meta:
@@ -21,21 +22,50 @@ layer_thickness: # meter
 # list in order of the computation
 # Look transfer_function.py for tf name and tf parameters are defined in tf_meta.yml
 param:
-    k_macropore:
-        compute: False
-        tf: k_macropore_tf1
-        min: 1.0e-7
-        max: 1.0e-1
-        vertical_scale: True
-        horizontal_scale: True
+    norm_prec:
+        compute: True
+        write: False
+        tf: norm_prec_tf1
+        min: 0.5
+        max: 2.0
+        vertical_scale: False
+        horizontal_scale: False
+        dim:
+            - hru
+        long_name: normalized precipitation by domain mean precipitation
+        units: '-'
+
+    retention_slope:
+        compute: True
+        write: False
+        tf: retention_slope_tf1
+        min: 2
+        max: 10
+        vertical_scale: False
+        horizontal_scale: False
         dim:
             - lyr
             - hru
-        long_name: saturated hydraulic conductivity for macropores
-        units: 'm s-1'
+        long_name: slope of retention curve on log scale
+        units: '-'
+
+    matric_potential:
+        compute: True
+        write: False
+        tf: matric_potential_tf1
+        min: 1
+        max: 500
+        vertical_scale: False
+        horizontal_scale: False
+        dim:
+            - lyr
+            - hru
+        long_name: saturation soil matric potential
+        units: 'kPa'
 
     k_soil:
-        compute: False
+        compute: True
+        write: True
         tf: k_soil_tf1
         min: 1.0e-7
         max: 1.0e-4
@@ -47,8 +77,22 @@ param:
         long_name: Saturated hydraulic conductivity
         units: 'm s-1'
 
+    k_macropore:
+        compute: True
+        write: True
+        tf: k_macropore_tf1
+        min: 1.0e-7
+        max: 1.0e-1
+        vertical_scale: false
+        horizontal_scale: True
+        dim:
+            - hru
+        long_name: saturated hydraulic conductivity for macropores
+        units: 'm s-1'
+
     theta_sat:
-        compute: False
+        compute: True
+        write: True
         tf: theta_sat_tf1
         min: 0.3000
         max: 0.6000
@@ -60,21 +104,134 @@ param:
         long_name: soil porosity
         units: '-'
 
-    aquiferBaseflowExp:
-        compute: False
-        tf: aquiferBaseflowExp_tf1
-        min: 1.00
-        max: 10.0
+    fieldCapacity:
+        compute: True
+        write: True
+        tf: fieldCapacity_tf1
+        min: 0.050
+        max: 0.400
         vertical_scale: True
         horizontal_scale: True
         dim:
             - lyr
             - hru
+        long_name: field capacity
+        units: '-'
+
+    critSoilWilting:
+        compute: True
+        write: True
+        tf: critSoilWilting_tf1
+        min: 0.020
+        max: 0.200
+        vertical_scale: True
+        horizontal_scale: True
+        dim:
+            - lyr
+            - hru
+        long_name: wilting point
+        units: '-'
+
+    critSoilTranspire:
+        compute: True
+        write: True
+        tf: critSoilTranspire_tf1
+        min: 0.020
+        max: 0.400
+        vertical_scale: True
+        horizontal_scale: True
+        dim:
+            - lyr
+            - hru
+        long_name: critical vol. liq. water content at limited transpiration
+        units: '-'
+
+    theta_res:
+        compute: False
+        write: True
+        tf: theta_res_tf1
+        min: 0.001
+        max: 0.100
+        vertical_scale: True
+        horizontal_scale: True
+        dim:
+            - lyr
+            - hru
+        long_name: volumetric residual water content
+        units: '-'
+
+    vGn_alpha:
+        compute: True
+        write: True
+        tf: vGn_alpha_tf1
+        min: -1.0
+        max: -0.01
+        vertical_scale: True
+        horizontal_scale: True
+        dim:
+            - lyr
+            - hru
+        long_name: van Genuchten alpha parameter
+        units: 'm-1'
+
+    vGn_n:
+        compute: True
+        write: True
+        tf: vGn_n_tf1
+        min: 1.00
+        max: 3.00
+        vertical_scale: True
+        horizontal_scale: True
+        dim:
+            - lyr
+            - hru
+        long_name: van Genuchten n parameter
+        units: '-'
+
+    wettingFrontSuction:
+        compute: True
+        write: True
+        tf: wettingFrontSuction_tf1
+        min: 0.10
+        max: 1.50
+        vertical_scale: True
+        horizontal_scale: True
+        dim:
+            - lyr
+            - hru
+        long_name: green-ampt wetting front suction
+        units: 'm'
+
+    zScale_TOPMODEL:
+        compute: False
+        write: True
+        tf: zScale_TOPMODEL_tf1
+        min: 0.100
+        max: 100.0
+        vertical_scale: True
+        horizontal_scale: True
+        dim:
+            - lyr
+            - hru
+        long_name: TOPMODEL scaling factor used to describe decrease in hydraulic conductivity with depth (m)
+        units: 'm'
+
+    aquiferBaseflowExp:
+        compute: True
+        write: True
+        tf: aquiferBaseflowExp_tf1
+        min: 1.00
+        max: 10.0
+        vertical_scale: False
+        horizontal_scale: True
+        dim:
+            - hru
         long_name: baseflow exponent
         units: '-'
 
     aquiferBaseflowRate:
-        compute: False
+        compute: True
+        write: True
         tf: aquiferBaseflowRate_tf1
         min: 1.0e-9
         max: 1.0e-1
@@ -87,33 +244,34 @@ param:
         units: 'm s-1'
 
     qSurfScale:
-        compute: False
+        compute: True
+        write: True
         tf: qSurfScale_tf1
         min: 1.000
-        max: 100.0
-        vertical_scale: True
+        max: 50.0
+        vertical_scale: False
         horizontal_scale: True
         dim:
-            - lyr
             - hru
-        long_name: scaling factor in the surface runoff parameterization
+        long_name: scaling factor controling the shape of saturation and infiltration area
         units: '-'
 
     Fcapil:
-        compute: False
+        compute: True
+        write: True
         tf: Fcapil_tf1
         min: 0.0100
-        max: 0.1000
-        vertical_scale: True
+        max: 0.0500
+        vertical_scale: False
         horizontal_scale: True
         dim:
-            - lyr
             - hru
-        long_name: capillary retention_as a fraction of the total pore volume
+        long_name: capillary retention_as a fraction of the total pore volume of snowpack
         units: '-'
 
     summerLAI:
         compute: True
+        write: True
         tf: summerLAI_tf1
         min: 0.01
         max: 10.0
@@ -125,7 +283,8 @@ param:
         units: 'm2/m2'
 
     heightCanopyTop:
-        compute: False
+        compute: True
+        write: True
         tf: heightCanopyTop_tf1
         min: 0.05
         max: 100.0
@@ -137,7 +296,8 @@ param:
         units: 'm'
 
     heightCanopyBottom:
-        compute: False
+        compute: True
+        write: True
         tf: heightCanopyBottom_tf1
         min: 0.0
         max: 5.0
@@ -151,6 +311,7 @@ param:
     frozenPrecipMultip:
         compute: True
         tf: frozenPrecipMultip_tf1
+        write: True
         min: 0.5
         max: 1.5
         vertical_scale: False
@@ -163,6 +324,7 @@ param:
     routingGammaScale:
         compute: False
         tf: routingGammaScale_tf1
+        write: True
         min: 360.0
         max: 72000.0
         vertical_scale: False
@@ -174,6 +336,7 @@ param:
 
     routingGammaShape:
         compute: False
+        write: True
         tf: routingGammaShape_tf1
         min: 1.0000
         max: 5.0000

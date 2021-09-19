@@ -1,3 +1,4 @@
+---
 # transfer function types and parameters
 #
 # -- convention
@@ -6,9 +7,45 @@
 # - coef2
 #
 # <parameter_name> should match with ['param']['<param_name'>] in param_meta.yml
+norm_prec:
 
+retention_slope:
+ - 1.0
+matric_potential:
+ - 1.0
 theta_sat:
  - 1.0
+fieldCapacity:
+ - 1.0
+critSoilWilting:
+ - 1.0
+critSoilTranspire:
+ - 0.5
+theta_res:
+ - 0.4
+k_soil:
+ - 1.0
+ - -1.0
+k_macropore:
+ - -1.0
+vGn_alpha:
+ - 1.0
+vGn_n:
+ - 1.0
+wettingFrontSuction:
+ - 1.0
+zScale_TOPMODEL:
+ - 1.0
+qSurfScale:
+ - 50.0
+ - 0.1
+aquiferBaseflowExp:
+ - 60.0
+ - 0.05
+aquiferBaseflowRate:
+ - 4
+Fcapil:
+ - 0.010
 summerLAI:
  - 1.0
 heightCanopyTop:
@@ -16,5 +53,5 @@ heightCanopyTop:
 heightCanopyBottom:
  - 0.5
 frozenPrecipMultip:
- - 3
- - 2
+ - 3.0
+ - 2.0

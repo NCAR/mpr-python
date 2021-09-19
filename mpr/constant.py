@@ -15,10 +15,14 @@ DAY2HR  = 24.
 
 #length
 INCH2M = 0.0254
+CM2M   = 0.01
 
+#pressure
+cmH2O2kPa = 0.0980665
+kPa2mH2O = 0.10199773339984
 
-#
-KGCM2GCM = 0.001 #kg/cm3 -> g/m3
+# density
+KGCM2GCCM = 0.001 #kg/m3 -> g/cm3
 
 # temperature
 K2CDEGREE = 273.13
