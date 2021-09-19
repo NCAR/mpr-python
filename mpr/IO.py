@@ -43,6 +43,7 @@ def load_geophysical_attributes(io_cfg,  **kwargs):
 
 def load_mapping_data(io_cfg, var_list=None, **kwargs):
     print('\n Loading mapping weight data...', flush=True)
+    # var_list should be key in 'MAPPING_VARS_META'
 
     root=io_cfg['INPUT']['DIRE']
     file=io_cfg['INPUT']['MAP_FILE']
@@ -52,11 +53,13 @@ def load_mapping_data(io_cfg, var_list=None, **kwargs):
         drop_var = []
         if var_list is not None:
 
+            ds_var_list=[]
             for var in var_list:
-                if not var in ds.variables:
-                    warnings.warn('variable: "%s" not exist' % var)
+                if not io_cfg['MAPPING_VARS_META'][var]['name'] in ds.variables:
+                    warnings.warn('variable: "%s" not exist' % io_cfg['MAPPING_VARS_META'][var]['name'])
+                ds_var_list.append(io_cfg['MAPPING_VARS_META'][var]['name'])
 
-            drop_var = [var for var in ds.variables if not var in var_list]
+            drop_var = [ds_var for ds_var in ds.variables if not ds_var in ds_var_list]
 
         mat_data = process_mapping_data(ds.drop_vars(drop_var), io_cfg, var_list=var_list)
 
@@ -67,14 +70,16 @@ def process_mapping_data(mapping_data, io_cfg, var_list=None):
     print("\n Pre-process mapping data arrays")
 
     # input:  xarray dataset,  mapping_data
-    #         list,            mapping variable list to be processed
-    # return: dictionary,      {variable name: numpy array}
+    #         list,            list of key variable name to be processed
+    # return: dictionary,      {kye variable name: numpy array}
 
     # data dimension variable reformat
     #   mat_weight      [nHRU x maxOverlaps]
     #   mat_i_index     [nHRU x maxOverlaps]
     #   mat_j_index     [nHRU x maxOverlaps]
     #   mat_intersector [nHRU x maxOverlaps]
+
+    datavar_list = ['intersector', 'weight', 'i_index', 'j_index', 'IDmask', 'regridweight']
 
     # enforce to include ['polyid', 'overlaps', 'weight']
     if not all(v in var_list for v in ['polyid', 'overlaps', 'weight']):
@@ -83,9 +88,10 @@ def process_mapping_data(mapping_data, io_cfg, var_list=None):
     # remove variables in var_list NOT exist in MAPPING_VARS_META
     var_list = [var for var in var_list if var in io_cfg['MAPPING_VARS_META'].keys()]
 
+    # transfer xarray dataset mapping_data (imported from netcdf) to discrionary var_dic key:MAPPING_VARS_META key, values: data
     var_dic = {}
     for var in var_list:
-        var_dic[var] = mapping_data[var].values
+        var_dic[var] = mapping_data[io_cfg['MAPPING_VARS_META'][var]['name']].values
         if var in ['i_index', 'j_index']:
              # j_index is 1-based and starts at south ... make 0-based
              # i_index is 1-based and starts at West ... make 0-based
@@ -103,7 +109,7 @@ def process_mapping_data(mapping_data, io_cfg, var_list=None):
     # convert 1D data dimension array to a matrix (nHRU x maxOverlaps)
     mat_dic = {}
     for var in var_list:
-        if io_cfg['MAPPING_VARS_META'][var]['dim'] == 'data':
+        if var in datavar_list:
             mat_dic[var] = np.zeros((nHRU, maxOverlaps), dtype=io_cfg['MAPPING_VARS_META'][var]['type'])
 
     ix2=0;
@@ -112,14 +118,13 @@ def process_mapping_data(mapping_data, io_cfg, var_list=None):
             ix1 = ix2
             ix2 = ix1+var_dic['overlaps'][p]
         elif var_dic['overlaps'][p]==0:
-            if flag: # NOTE: grid2poly.py put overlaps=0 output skip data in data dimension, but poly2poly put overlaps=1 and missing values in data dimension
+            if flag: # NOTE:  # WARNNG: grid2poly.py output skip data in data dimension, but poly2poly put missing values in data dimension
                 ix1 = ix2
                 ix2 = ix2+1
-            matWgts[p, 0] = 1.0
             continue
 
         for var in var_list:
-            if io_cfg['MAPPING_VARS_META'][var]['dim'] == 'data':
+            if var in datavar_list:
                 if var == 'weight': # will normalize in case sum of weight is not 1
                     mat_dic[var][p, 0:var_dic['overlaps'][p]] = var_dic[var][ix1:ix2]/var_dic[var][ix1:ix2].sum()
                 else:
